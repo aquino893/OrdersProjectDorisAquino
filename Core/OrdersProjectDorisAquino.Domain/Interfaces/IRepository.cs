@@ -8,4 +8,5 @@ public interface IRepository
     Task<IEnumerable<Customer>> GetAllCustomers();
 
     Task<IEnumerable<Employee>> GetAllEmployees();
+    Task<IEnumerable<Product>> GetAllProducts();
 }

@@ -23,5 +23,13 @@ public class Repository(AppDbContext context) : IRepository
             .ConfigureAwait(false);
     }
 
+    public async Task<IEnumerable<Product>> GetAllProducts()
+    {
+        return await context.Products
+            .AsNoTracking()
+            .ToListAsync()
+            .ConfigureAwait(false);
+    }
+
 
 }
