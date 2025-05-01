@@ -6,4 +6,6 @@ public interface IRepository
 {
     // Métodos para Customers
     Task<IEnumerable<Customer>> GetAllCustomers();
+
+    Task<IEnumerable<Employee>> GetAllEmployees();
 }

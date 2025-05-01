@@ -15,5 +15,13 @@ public class Repository(AppDbContext context) : IRepository
             .ConfigureAwait(false);
     }
 
+    public async Task<IEnumerable<Employee>> GetAllEmployees()
+    {
+        return await context.Employees
+            .AsNoTracking()
+            .ToListAsync()
+            .ConfigureAwait(false);
+    }
+
 
 }

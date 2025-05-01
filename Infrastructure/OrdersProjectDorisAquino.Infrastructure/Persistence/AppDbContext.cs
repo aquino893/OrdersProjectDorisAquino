@@ -14,6 +14,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options)
     : DbContext(options)
 {
     public virtual DbSet<Customer> Customers { get; set; }
+    public virtual DbSet<Employee> Employees { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
