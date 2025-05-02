@@ -9,4 +9,11 @@ public interface IRepository
 
     Task<IEnumerable<Employee>> GetAllEmployees();
     Task<IEnumerable<Product>> GetAllProducts();
+
+    // Métodos para Orders
+    Task<IEnumerable<Order>> GetAllOrders();
+    Task<Order> GetOrderById(int id);
+    Task<int> CreateOrder(Order order);
+    Task<bool> UpdateOrder(Order order);
+    Task<bool> DeleteOrder(int id);
 }
