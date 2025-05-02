@@ -46,8 +46,12 @@ public class OrdersController : ControllerBase
     {
         try
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             var orderId = await _orderService.CreateOrder(orderDto);
-            return CreatedAtAction(nameof(GetOrderById), new { id = orderId }, orderDto);
+            var createdOrder = await _orderService.GetOrderById(orderId);
+            return CreatedAtAction(nameof(GetOrderById), new { id = orderId }, createdOrder);
         }
         catch (Exception ex)
         {
@@ -60,8 +64,15 @@ public class OrdersController : ControllerBase
     {
         try
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             var result = await _orderService.UpdateOrder(id, orderDto);
-            return result ? NoContent() : NotFound();
+            if (!result)
+                return NotFound();
+
+            var updatedOrder = await _orderService.GetOrderById(id);
+            return Ok(updatedOrder);
         }
         catch (BadRequestException ex)
         {

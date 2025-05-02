@@ -65,7 +65,74 @@ public class Repository(AppDbContext context) : IRepository
     public async Task<bool> UpdateOrder(Order order)
     {
         context.Orders.Update(order);
-        return await context.SaveChangesAsync().ConfigureAwait(false) > 0;
+        return await context.SaveChangesAsync() > 0;
+    }
+
+    public async Task<bool> UpdateFullOrder(Order order)
+    {
+        // Obtener los IDs de los productos existentes
+        var existingDetailIds = await context.OrderDetails
+            .Where(od => od.OrderID == order.OrderID)
+            .Select(od => od.ProductID)
+            .ToListAsync();
+
+        // Eliminar detalles que ya no están en la orden actualizada
+        var detailsToRemove = context.OrderDetails
+            .Where(od => od.OrderID == order.OrderID && 
+                        !order.OrderDetails.Any(d => d.ProductID == od.ProductID));
+        context.OrderDetails.RemoveRange(detailsToRemove);
+
+        // Actualizar o agregar detalles
+        foreach (var detail in order.OrderDetails)
+        {
+            var existingDetail = await context.OrderDetails
+                .FirstOrDefaultAsync(od => 
+                    od.OrderID == order.OrderID && 
+                    od.ProductID == detail.ProductID);
+
+            if (existingDetail != null)
+            {
+                // Actualizar detalle existente
+                existingDetail.UnitPrice = detail.UnitPrice;
+                existingDetail.Quantity = detail.Quantity;
+                existingDetail.Discount = detail.Discount;
+                context.Entry(existingDetail).State = EntityState.Modified;
+            }
+            else
+            {
+                // Agregar nuevo detalle
+                context.OrderDetails.Add(new OrderDetail
+                {
+                    OrderID = order.OrderID,
+                    ProductID = detail.ProductID,
+                    UnitPrice = detail.UnitPrice,
+                    Quantity = detail.Quantity,
+                    Discount = detail.Discount
+                });
+            }
+        }
+
+        // Marcar la orden como modificada
+        context.Entry(order).State = EntityState.Modified;
+
+        // Guardar todos los cambios
+        return await context.SaveChangesAsync() > 0;
+    }
+
+    public async Task<bool> ProductExists(int productId)
+    {
+        return await context.Products
+            .AnyAsync(p => p.ProductID == productId);
+    }
+
+    public async Task<Order> GetOrderByIdWithDetails(int id)
+    {
+        return await context.Orders
+            .Include(o => o.Customer)
+            .Include(o => o.Employee)
+            .Include(o => o.OrderDetails)
+                .ThenInclude(od => od.Product)
+            .FirstOrDefaultAsync(o => o.OrderID == id);
     }
 
     public async Task<bool> DeleteOrder(int id)

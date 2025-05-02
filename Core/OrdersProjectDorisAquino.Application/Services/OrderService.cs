@@ -72,18 +72,74 @@ public class OrderService(IRepository repository) : IOrderService
     public async Task<bool> UpdateOrder(int id, OrderDto orderDto)
     {
         if (id != orderDto.OrderId)
-            throw new BadRequestException("ID mismatch");
+            throw new ArgumentException("ID mismatch");
 
-        var existingOrder = await repository.GetOrderById(id);
+        var existingOrder = await repository.GetOrderByIdWithDetails(id);
         if (existingOrder == null)
             throw new NotFoundException($"Order with ID {id} not found");
 
-        // Actualizar propiedades
+        // Actualizar propiedades principales
         existingOrder.CustomerID = orderDto.CustomerId;
         existingOrder.EmployeeID = orderDto.EmployeeId;
-        // ... otras propiedades
+        existingOrder.OrderDate = orderDto.OrderDate;
+        existingOrder.Freight = orderDto.Freight;
+        existingOrder.ShipName = orderDto.ShipName ?? string.Empty;
+        existingOrder.ShipAddress = orderDto.ShipAddress ?? string.Empty;
+        existingOrder.ShipCity = orderDto.ShipCity ?? string.Empty;
+        existingOrder.ShipPostalCode = orderDto.ShipPostalCode ?? string.Empty;
+        existingOrder.ShipCountry = orderDto.ShipCountry ?? string.Empty;
+
+        // Manejo de OrderDetails
+        await UpdateOrderDetails(existingOrder, orderDto.OrderDetails);
 
         return await repository.UpdateOrder(existingOrder);
+    }
+
+    private async Task UpdateOrderDetails(Order existingOrder, List<OrderDetailDto> newDetails)
+    {
+        // Convertir a diccionario para búsqueda rápida
+        var newDetailsDict = newDetails.ToDictionary(d => d.ProductId);
+
+        // 1. Eliminar detalles que no están en el DTO
+        var detailsToRemove = existingOrder.OrderDetails
+            .Where(od => !newDetailsDict.ContainsKey(od.ProductID))
+            .ToList();
+
+        foreach (var detail in detailsToRemove)
+        {
+            existingOrder.OrderDetails.Remove(detail);
+        }
+
+        // 2. Actualizar/agregar detalles
+        foreach (var detailDto in newDetails)
+        {
+            var existingDetail = existingOrder.OrderDetails
+                .FirstOrDefault(od => od.ProductID == detailDto.ProductId);
+
+            if (existingDetail != null)
+            {
+                // Actualizar detalle existente
+                existingDetail.UnitPrice = detailDto.UnitPrice;
+                existingDetail.Quantity = detailDto.Quantity;
+                existingDetail.Discount = detailDto.Discount;
+            }
+            else
+            {
+                // Verificar que el producto existe
+                var productExists = await repository.ProductExists(detailDto.ProductId);
+                if (!productExists)
+                    throw new ArgumentException($"Product with ID {detailDto.ProductId} not found");
+
+                // Agregar nuevo detalle
+                existingOrder.OrderDetails.Add(new OrderDetail
+                {
+                    ProductID = detailDto.ProductId,
+                    UnitPrice = detailDto.UnitPrice,
+                    Quantity = detailDto.Quantity,
+                    Discount = detailDto.Discount
+                });
+            }
+        }
     }
 
     public async Task<bool> DeleteOrder(int id)

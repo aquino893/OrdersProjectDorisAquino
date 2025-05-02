@@ -1,12 +1,15 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OrdersProjectDorisAquino.Domain.Entities;
-using System;
 using System.Diagnostics;
 
 namespace OrdersProjectDorisAquino.Infrastructure.Persistence;
 
-public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
+public class AppDbContext : DbContext
 {
+    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options)
+    {
+    }
+
     public virtual DbSet<Customer> Customers { get; set; }
     public virtual DbSet<Employee> Employees { get; set; }
     public virtual DbSet<Product> Products { get; set; }
@@ -15,18 +18,11 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        // Configuración para la entidad Order
         modelBuilder.Entity<Order>(entity =>
         {
-            entity.ToTable("Orders"); // Opcional: si la tabla se llama diferente en BD
+            entity.ToTable("Orders");
             entity.HasKey(e => e.OrderID);
             
-            entity.HasMany(e => e.OrderDetails)
-                  .WithOne(od => od.Order)
-                  .HasForeignKey(od => od.OrderID)
-                  .OnDelete(DeleteBehavior.Cascade); // Configura eliminación en cascada
-
-            // Configuración opcional de propiedades
             entity.Property(e => e.Freight).HasColumnType("money");
             entity.Property(e => e.OrderDate).IsRequired();
             entity.Property(o => o.ShipRegion).IsRequired(false);
@@ -38,39 +34,41 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             entity.Property(o => o.ShipCountry).HasDefaultValue("");
         });
 
-        // Configuración para la entidad OrderDetail (con nombre de tabla con espacio)
         modelBuilder.Entity<OrderDetail>(entity =>
         {
-            entity.ToTable("Order Details"); // Nombre exacto de la tabla en la BD
-            
-            entity.HasKey(e => new { e.OrderID, e.ProductID }); // Clave compuesta
+            entity.ToTable("Order Details");
+            entity.HasKey(e => new { e.OrderID, e.ProductID });
             
             entity.Property(e => e.UnitPrice)
-                  .HasColumnType("money")
-                  .HasPrecision(19, 4);
+                .HasColumnType("money")
+                .HasPrecision(19, 4);
             
             entity.Property(e => e.Discount)
-                  .HasColumnType("real")
-                  .HasDefaultValue(0f);
+                .HasColumnType("real")
+                .HasDefaultValue(0f);
             
             entity.Property(e => e.Quantity)
-                  .IsRequired()
-                  .HasDefaultValue((short)1);
+                .IsRequired()
+                .HasDefaultValue((short)1);
+
+            // Relación con Order
+            entity.HasOne(od => od.Order)
+                .WithMany(o => o.OrderDetails)
+                .HasForeignKey(od => od.OrderID)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // Relación con Product
             entity.HasOne(od => od.Product)
-                  .WithMany()
-                  .HasForeignKey(od => od.ProductID)
-                  .OnDelete(DeleteBehavior.Restrict); // Evita eliminación en cascada
+                .WithMany()
+                .HasForeignKey(od => od.ProductID)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
-        // Configuración para otras entidades
         modelBuilder.Entity<Product>(entity =>
         {
             entity.Property(p => p.UnitPrice).HasColumnType("money");
         });
 
-        // Si necesitas configuraciones adicionales para Customer o Employee
         modelBuilder.Entity<Customer>(entity =>
         {
             entity.HasKey(c => c.CustomerId);
