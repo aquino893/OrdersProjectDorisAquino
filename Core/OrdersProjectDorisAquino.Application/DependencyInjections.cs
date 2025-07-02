@@ -1,6 +1,7 @@
 using OrdersProjectDorisAquino.Application.Interfaces;
 using OrdersProjectDorisAquino.Application.Services;
 using Microsoft.Extensions.DependencyInjection;
+using OrdersProjectDorisAquino.Domain.Interfaces.ExternalServices;
 
 namespace OrdersProjectDorisAquino.Application;
 

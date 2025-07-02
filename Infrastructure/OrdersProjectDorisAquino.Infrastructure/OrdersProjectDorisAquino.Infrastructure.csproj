@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Core\OrdersProjectDorisAquino.Domain\OrdersProjectDorisAquino.Domain.csproj" />
+    <ProjectReference Include="..\..\Core\OrdersProjectDorisAquino.Application\OrdersProjectDorisAquino.Application.csproj" />
   </ItemGroup>
 
 </Project>
